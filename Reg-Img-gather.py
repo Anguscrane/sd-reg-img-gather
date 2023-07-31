@@ -1,10 +1,9 @@
 import subprocess
-subprocess.check_call(['pip', 'install', 'requests'])
 import os
 import importlib
 import requests
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import simpledialog, filedialog
 import configparser
 
 # Function to download an image from the given URL
@@ -21,13 +20,13 @@ def download_image(url, folder_path, image_name):
         return False
 
 # Function to download images with the specified tag
-def download_images_with_tag(tag, num_images, api_key):
+def download_images_with_tag(tag, num_images, api_key, download_location="."):
     url = f'https://api.unsplash.com/photos/random/?client_id={api_key}&count={num_images}&query={tag}'
     
     response = requests.get(url)
     if response.status_code == 200:
         images_data = response.json()
-        folder_name = f"unsplash_reg_images_{tag}"
+        folder_name = os.path.join(download_location, f"unsplash_reg_images_{tag}")
         os.makedirs(folder_name, exist_ok=True)
         downloaded_count = 0
 
@@ -59,8 +58,14 @@ def on_download_button_click():
     search_tag = entry_tag.get()
     num_images = int(entry_num_images.get())
     api_key = get_unsplash_api_key()
-    download_images_with_tag(search_tag, num_images, api_key)
+    download_images_with_tag(search_tag, num_images, api_key, download_location.get())  # Pass the chosen download location
 
+# Function to handle GUI button click event for "Choose Download Location"
+def on_choose_location_click():
+    chosen_location = filedialog.askdirectory()
+    if chosen_location:
+        download_location.set(chosen_location)
+        
 # Function to get the Unsplash API key from the configuration file
 def get_unsplash_api_key():
     config = configparser.ConfigParser()
@@ -108,5 +113,12 @@ download_button.pack()
 # Create "Edit Unsplash API Key" button with increased font size
 edit_api_key_button = tk.Button(root, text="Edit Unsplash API Key", font=("Arial", 16), command=on_edit_api_key_click)
 edit_api_key_button.pack(side=tk.LEFT, padx=10, pady=10)
+
+# Create "Choose Download Location" button with increased font size
+choose_location_button = tk.Button(root, text="Choose Download Location", font=("Arial", 16), command=on_choose_location_click)
+choose_location_button.pack(side=tk.RIGHT, padx=10, pady=10)
+
+# Create a Tkinter StringVar to store the download location
+download_location = tk.StringVar()
 
 root.mainloop()
