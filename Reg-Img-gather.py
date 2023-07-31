@@ -1,10 +1,12 @@
 import subprocess
+subprocess.check_call(['pip', 'install', 'requests'])
 import os
 import importlib
 import requests
 import tkinter as tk
 from tkinter import simpledialog, filedialog
 import configparser
+
 
 # Function to download an image from the given URL
 def download_image(url, folder_path, image_name):
@@ -21,27 +23,37 @@ def download_image(url, folder_path, image_name):
 
 # Function to download images with the specified tag
 def download_images_with_tag(tag, num_images, api_key, download_location="."):
-    url = f'https://api.unsplash.com/photos/random/?client_id={api_key}&count={num_images}&query={tag}'
-    
-    response = requests.get(url)
-    if response.status_code == 200:
-        images_data = response.json()
-        folder_name = os.path.join(download_location, f"unsplash_reg_images_{tag}")
-        os.makedirs(folder_name, exist_ok=True)
-        downloaded_count = 0
+    num_images_per_request = 30  # Limit per API request
+    num_requests = (num_images - 1) // num_images_per_request + 1  # Calculate number of requests needed
 
-        for idx, image_data in enumerate(images_data):
-            image_url = image_data['urls']['raw']
-            image_name = f"{tag}_{idx}.jpg"
-            if download_image(image_url, folder_name, image_name):
-                downloaded_count += 1
+    folder_name = os.path.join(download_location, f"unsplash_reg_images_{tag}")
+    os.makedirs(folder_name, exist_ok=True)
+    downloaded_count = 0
 
-        open_folder(folder_name)
-        print(f"All {downloaded_count} images downloaded.")
-    else:
-        print("Failed to fetch images.")
+    for request_num in range(num_requests):
+        page_num = request_num + 1
+        url = f'https://api.unsplash.com/photos/random/?client_id={api_key}&count={num_images_per_request}&query={tag}&page={page_num}'
+
+        response = requests.get(url)
+        if response.status_code == 200:
+            images_data = response.json()
+
+            for idx, image_data in enumerate(images_data):
+                image_url = image_data['urls']['raw']
+                image_name = f"{tag}_{downloaded_count}.jpg"  # Use the total count as the index
+                if download_image(image_url, folder_name, image_name):
+                    downloaded_count += 1
+                    if downloaded_count == num_images:  # Stop if desired number of images is reached
+                        break
+
+    open_folder(folder_name)
+    print(f"All {downloaded_count} images downloaded.")
     root.destroy()  # Close the GUI window after download
 
+
+    open_folder(folder_name)
+    print(f"All {downloaded_count} images downloaded.")
+    root.destroy()  # Close the GUI window after download
 # Function to open the folder where images are stored
 def open_folder(folder_path):
     try:
